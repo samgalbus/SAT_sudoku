@@ -255,3 +255,5 @@ if __name__ == '__main__':
     res = solverOutput.decode('utf-8')
     printResult(res)
     genSolvedBoard(res,output_filename)
+
+#test
