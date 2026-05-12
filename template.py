@@ -194,6 +194,9 @@ def genSolvedBoard(res,filename):
         if x > 0
     ]
 
+    #Sorting first by row and then by column
+    facts.sort(key=lambda x: (x[0], x[1]))
+
     with open(filename, 'w') as f:
         for i in range(9):
             for j in range(9):
@@ -225,7 +228,7 @@ if __name__ == '__main__':
 
     ###adding down here###
     if len(sys.argv) != 3:
-        print("Usage: %s <sudoku_input_file>" % sys.argv[0])
+        print("Usage: %s <sudoku_input_file> <sudoku_output_file>" % sys.argv[0])
         sys.exit(1)
 
     input_filename = sys.argv[1]
