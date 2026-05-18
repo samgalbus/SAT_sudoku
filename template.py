@@ -181,6 +181,7 @@ def printResult(res):
     for f in facts:
         print("c", f)
 
+#Do not call this
 def genSolvedBoard(res,filename):
     res = res.strip().split('\n')
 
@@ -204,8 +205,65 @@ def genSolvedBoard(res,filename):
             f.write("\n")
 
 
+def toMatrix(res):
+    res = res.strip().split('\n')
+    if res[0] != "s SATISFIABLE":
+        return
 
-## This function is invoked when the python script is run directly and not imported
+    asgn = map(int, res[1].split()[1:])
+    facts = [
+        tuple(map(int, re.findall(r'\d+', varNumberToName(x))))
+        for x in asgn
+        if x > 0
+    ]
+
+    #Sorting first by row and then by column
+    facts.sort(key=lambda x: (x[0], x[1]))
+
+    solved_board = [[0 for _ in range(9)] for _ in range(9)]
+
+    for i in range(9):
+        for j in range(9):
+            solved_board[i][j] = facts[9 * i + j][2]
+    return solved_board
+
+#Call this
+#It takes an initial sudoku board and it returns its solution
+#Input: 9x9 matrix representing a sudoku initial board with 0 representing an empty cell
+#Output: 9x9 matrix representing the input solution if the input is satisfiable. It returns None if the input is unsatisfiable
+def solveBoard(board):
+    path = shutil.which(SATsolver.split()[0])
+    if path is None:
+        if SATsolver == defSATsolver:
+            print("Set the path to a SAT solver via SATsolver variable on line 9 of this file (%s)" % sys.argv[0])
+        else:
+            print("Path '%s' does not exist or is not executable." % SATsolver)
+        sys.exit(1)
+
+    kwargs = {}
+    kwargs['grid'] = board
+    genVarNames(**kwargs)
+    clauses = genClauses(**kwargs)
+
+    head = getDimacsHeader(clauses)
+    cnf = toDimacsCnf(clauses)
+
+    # Here we create a temporary cnf file for SATsolver
+    fl = open("tmp_prob.cnf", "w")
+    fl.write("\n".join([head, cnf]) + "\n")
+    fl.close()
+
+    # Run the SATsolver
+    solverOutput = Popen([SATsolver + " tmp_prob.cnf"], stdout=PIPE, shell=True).communicate()[0]
+    res = solverOutput.decode('utf-8')
+    if "UNSATISFIABLE" in res:
+        return None
+    return toMatrix(res)
+
+
+
+
+# This function is invoked when the python script is run directly and not imported
 if __name__ == '__main__':
     path = shutil.which(SATsolver.split()[0])
     if path is None:
@@ -216,15 +274,6 @@ if __name__ == '__main__':
         sys.exit(1)
 
     kwargs = {}
-
-    ##+ Insert here the code to read the arguments of your application and fill them into 'kwargs'
-    # example:
-    # if len(sys.argv) != 2:
-    #     print("Usage: %s <count>" % sys.argv[0])
-    #     sys.exit(1)
-
-    # kwargs['count'] = int(sys.argv[1])
-    ##+ End of code insertion
 
     ###adding down here###
     if len(sys.argv) != 3:
