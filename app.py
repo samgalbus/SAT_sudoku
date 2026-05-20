@@ -31,7 +31,8 @@ from flask import Flask, jsonify, render_template, request
 
 from template import solveBoard
 
-DB_PATH = "puzzles.db"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "puzzles.db")
 SOLVER_LOCK = threading.Lock()
 DIFFICULTY_CLUES = {"easy": 40, "medium": 30, "hard": 25, "expert": 22}
 
@@ -96,6 +97,8 @@ def _load_puzzle(pid):
     finally:
         conn.close()
 
+
+_init_db()
 
 # ---------------------------- Input validation ----------------------------
 
@@ -227,21 +230,40 @@ def _count_solutions_upto(grid, limit=2):
     grid = [row[:] for row in grid]
     count = [0]
 
-    def backtrack():
-        if count[0] >= limit:
-            return
+    def candidates_for(r, c):
+        return [v for v in range(1, 10) if _is_placement_valid(grid, r, c, v)]
+
+    def next_empty_with_fewest_candidates():
+        best = None
+        best_candidates = None
         for r in range(9):
             for c in range(9):
                 if grid[r][c] == 0:
-                    for v in range(1, 10):
-                        if _is_placement_valid(grid, r, c, v):
-                            grid[r][c] = v
-                            backtrack()
-                            grid[r][c] = 0
-                            if count[0] >= limit:
-                                return
-                    return
-        count[0] += 1
+                    candidates = candidates_for(r, c)
+                    if not candidates:
+                        return (r, c), []
+                    if best is None or len(candidates) < len(best_candidates):
+                        best = (r, c)
+                        best_candidates = candidates
+        return best, best_candidates
+
+    def backtrack():
+        if count[0] >= limit:
+            return
+        pos, candidates = next_empty_with_fewest_candidates()
+        if pos is None:
+            count[0] += 1
+            return
+        if not candidates:
+            return
+
+        r, c = pos
+        for v in candidates:
+            grid[r][c] = v
+            backtrack()
+            grid[r][c] = 0
+            if count[0] >= limit:
+                return
 
     backtrack()
     return count[0]
@@ -283,12 +305,37 @@ def _generate_puzzle(difficulty):
             saved.append((p2, puzzle[p2[0]][p2[1]]))
             puzzle[p2[0]][p2[1]] = 0
 
+        if len(saved) > clue_count - target:
+            for (pos, val) in saved:
+                puzzle[pos[0]][pos[1]] = val
+            continue
+
         if _has_unique_solution(puzzle):
             clue_count -= len(saved)
         else:
             # Multi-solution after removal - restore and try a different pair.
             for (pos, val) in saved:
                 puzzle[pos[0]][pos[1]] = val
+
+    # Symmetric removal can get stuck above the requested target. Finish with
+    # single-cell removals so the selected difficulty maps to the intended clue
+    # count when uniqueness allows it.
+    while clue_count > target:
+        progress = False
+        cells = [(r, c) for r in range(9) for c in range(9) if puzzle[r][c] != 0]
+        random.shuffle(cells)
+        for r, c in cells:
+            if clue_count <= target:
+                break
+            saved = puzzle[r][c]
+            puzzle[r][c] = 0
+            if _has_unique_solution(puzzle):
+                clue_count -= 1
+                progress = True
+            else:
+                puzzle[r][c] = saved
+        if not progress:
+            break
 
     return puzzle, solution, clue_count
 
