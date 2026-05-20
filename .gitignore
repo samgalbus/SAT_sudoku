@@ -2,5 +2,9 @@ input.txt
 output.txt
 *.cnf
 *.pyc
-__pycache__
+__pycache__/
+.venv/
+venv/
+puzzles.db
+.DS_Store
 .idea

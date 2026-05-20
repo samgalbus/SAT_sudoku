@@ -1,0 +1,102 @@
+{% extends "_base.html" %}
+
+{% block content %}
+<div class="page">
+  <div class="grids">
+    <div class="grid-wrap">
+      <div class="grid-label" data-i18n="label.primaryGrid">Your puzzle</div>
+      <div id="grid" class="primary-grid"></div>
+    </div>
+    <div class="grid-wrap" id="solutionWrap" hidden>
+      <div class="grid-label" data-i18n="label.solutionGrid">Solution</div>
+      <div id="solutionGrid" class="solution-grid"></div>
+    </div>
+  </div>
+
+  <aside class="panel">
+    <h1 data-i18n="play.heading">Sudoku</h1>
+
+    <div class="row">
+      <select id="difficulty">
+        <option value="easy"   data-i18n="diff.easy">Easy</option>
+        <option value="medium" selected data-i18n="diff.medium">Medium</option>
+        <option value="hard"   data-i18n="diff.hard">Hard</option>
+        <option value="expert" data-i18n="diff.expert">Expert</option>
+      </select>
+      <button id="generate" type="button" class="primary" data-i18n="btn.new">New Game</button>
+    </div>
+
+    <div class="row">
+      <button id="solve" type="button" data-i18n="btn.reveal">Reveal solution</button>
+      <button id="check" type="button" data-i18n="btn.check">Check</button>
+      <button id="hint"  type="button"><span data-i18n="btn.hint">Hint</span> (<span id="hintsLeft">3</span>)</button>
+    </div>
+
+    <div class="row">
+      <button id="clearEntries" type="button" data-i18n="btn.clearEntries">Clear my entries</button>
+      <button id="clear"        type="button" data-i18n="btn.clearAll">Clear everything</button>
+    </div>
+
+    <div class="timer-wrap">
+      <span class="timer-label" data-i18n="label.time">Time:</span>
+      <span id="timer" class="timer">00:00</span>
+    </div>
+
+    <details>
+      <summary data-i18n="section.import">Import puzzle</summary>
+      <label for="matrix" data-i18n="label.paste">Paste 9 lines:</label>
+      <textarea id="matrix" spellcheck="false" placeholder="400003002&#10;092780540&#10;030009010&#10;609000020&#10;070000060&#10;050000107&#10;060800050&#10;025074680&#10;700900001"></textarea>
+      <label for="upload" data-i18n="label.upload">Or upload .txt:</label>
+      <input type="file" id="upload" accept=".txt,text/plain">
+    </details>
+
+    <details>
+      <summary data-i18n="section.settings">Settings</summary>
+      <label class="setting"><input type="checkbox" id="setLiveValidate"> <span data-i18n="set.liveErrors">Live error detection</span></label>
+      <label class="setting"><input type="checkbox" id="setTimer" checked> <span data-i18n="set.timer">Show timer</span></label>
+      <label class="setting">
+        <span data-i18n="set.lang">Language:</span>
+        <select id="langSelect">
+          <option value="en">English</option>
+          <option value="it">Italiano</option>
+        </select>
+      </label>
+      <button id="restartTutorial" type="button" data-i18n="set.restartTutorial">Restart tutorial</button>
+    </details>
+
+    <p id="status"></p>
+  </aside>
+</div>
+
+<div id="tutorial" hidden>
+  <div class="tutorial-backdrop"></div>
+  <div class="tutorial-card" role="dialog" aria-modal="true">
+    <h2 id="tutorialTitle" data-i18n="tutorial.title">Welcome!</h2>
+    <p id="tutorialBody"></p>
+    <div class="tutorial-progress">
+      <span id="tutorialStepIndicator">1 / 4</span>
+    </div>
+    <div class="tutorial-actions">
+      <button id="tutorialSkip"  type="button" data-i18n="tutorial.skip">Skip</button>
+      <button id="tutorialPrev"  type="button" data-i18n="tutorial.prev">Back</button>
+      <button id="tutorialNext"  type="button" data-i18n="tutorial.next">Next</button>
+    </div>
+  </div>
+</div>
+
+<div id="revealModal" class="modal" hidden>
+  <div class="modal-backdrop" data-close-reveal></div>
+  <div class="modal-card" role="dialog" aria-modal="true">
+    <h2 data-i18n="reveal.title">Reveal solution?</h2>
+    <p data-i18n="reveal.body">This will show the full solution and end your current game. The timer will stop.</p>
+    <div class="modal-actions">
+      <button type="button" data-close-reveal data-i18n="reveal.cancel">Cancel</button>
+      <button type="button" id="revealConfirm" class="primary" data-i18n="reveal.confirm">Reveal</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/sudoku.js"></script>
+{% endblock %}

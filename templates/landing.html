@@ -1,0 +1,87 @@
+{% extends "_base.html" %}
+
+{% block content %}
+<section class="landing">
+  <div class="landing-hero">
+    <h1 data-i18n="landing.heroTitle">Race the world. One puzzle a week.</h1>
+    <p data-i18n="landing.heroBody">Every Monday, the same three Sudoku boards appear for every player. Solve them as fast as you can — your time is on the global leaderboard.</p>
+    <div class="landing-cta">
+      <a class="cta cta--secondary" href="/play" data-i18n="landing.ctaFree">Play Free</a>
+      <button class="cta cta--primary" id="ctaWeekly" data-i18n="landing.ctaWeekly">Join the Weekly</button>
+    </div>
+  </div>
+
+  <div class="landing-preview">
+    <h2 data-i18n="landing.previewTitle">This week's top finishers</h2>
+    <div class="preview-grid">
+      <div class="preview-card" data-diff="easy">
+        <div class="preview-card-header"><span data-i18n="diff.easy">Easy</span></div>
+        <ol class="preview-list" id="previewEasy"></ol>
+      </div>
+      <div class="preview-card" data-diff="medium">
+        <div class="preview-card-header"><span data-i18n="diff.medium">Medium</span></div>
+        <ol class="preview-list" id="previewMedium"></ol>
+      </div>
+      <div class="preview-card" data-diff="hard">
+        <div class="preview-card-header"><span data-i18n="diff.hard">Hard</span></div>
+        <ol class="preview-list" id="previewHard"></ol>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  function fmtMmSs(ms) {
+    const secs = Math.floor((ms || 0) / 1000);
+    return `${String(Math.floor(secs / 60)).padStart(2, "0")}:${String(secs % 60).padStart(2, "0")}`;
+  }
+
+  async function loadPreview() {
+    try {
+      const res = await fetch("/landing-preview", { credentials: "same-origin" });
+      const json = await res.json();
+      if (!json.success) return;
+      for (const diff of ["easy", "medium", "hard"]) {
+        const list = document.getElementById("preview" + diff[0].toUpperCase() + diff.slice(1));
+        const rows = json.previews[diff] || [];
+        list.innerHTML = "";
+        if (rows.length === 0) {
+          const li = document.createElement("li");
+          li.className = "preview-empty";
+          li.textContent = t("leaderboard.empty");
+          list.appendChild(li);
+          continue;
+        }
+        rows.forEach((row, i) => {
+          const li = document.createElement("li");
+          const name = document.createElement("a");
+          name.href = `/profile/${encodeURIComponent(row.username)}`;
+          name.textContent = row.username;
+          const time = document.createElement("span");
+          time.className = "preview-time";
+          time.textContent = fmtMmSs(row.elapsed_ms);
+          li.appendChild(name);
+          li.appendChild(time);
+          list.appendChild(li);
+        });
+      }
+    } catch (e) { /* silent */ }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const cta = document.getElementById("ctaWeekly");
+    if (cta) cta.addEventListener("click", () => {
+      if (window.Auth && window.Auth.me && window.Auth.me()) {
+        window.location.href = "/weekly";
+      } else {
+        window.Auth.openModal("login");
+      }
+    });
+    loadPreview();
+  });
+})();
+</script>
+{% endblock %}

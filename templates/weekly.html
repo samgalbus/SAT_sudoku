@@ -1,0 +1,49 @@
+{% extends "_base.html" %}
+
+{% block title %}Weekly Challenge{% endblock %}
+{% block title_key %}weekly.title{% endblock %}
+
+{% block content %}
+<section class="weekly">
+  <header class="weekly-header">
+    <h1 data-i18n="weekly.title">Weekly Challenge</h1>
+    <p class="weekly-subtitle" data-i18n="weekly.subtitle">Same boards for everyone. Fastest time wins.</p>
+    <p class="weekly-week" id="weeklyWeekLabel"></p>
+  </header>
+
+  <div class="weekly-diff-tabs" role="tablist">
+    <button type="button" class="diff-tab" data-diff="easy"   data-i18n="diff.easy">Easy</button>
+    <button type="button" class="diff-tab" data-diff="medium" data-i18n="diff.medium">Medium</button>
+    <button type="button" class="diff-tab" data-diff="hard"   data-i18n="diff.hard">Hard</button>
+  </div>
+
+  <div class="weekly-body">
+    <div class="weekly-grid-col">
+      <div id="weeklyGrid" class="primary-grid"></div>
+    </div>
+
+    <aside class="weekly-panel">
+      <div class="weekly-banner" id="weeklyStatusBanner" data-state="loading">
+        <p id="weeklyStatusText" data-i18n="toast.generating">Loading...</p>
+      </div>
+
+      <div class="weekly-timer-wrap">
+        <span class="timer-label" data-i18n="label.time">Time:</span>
+        <span id="weeklyTimer" class="timer">00:00</span>
+      </div>
+
+      <div class="weekly-actions">
+        <button id="weeklyStartBtn" type="button" class="primary" data-i18n="weekly.start" hidden>Start</button>
+        <button id="weeklySubmitBtn" type="button" class="primary" data-i18n="weekly.submit" hidden>Submit</button>
+      </div>
+
+      <p class="weekly-loggedout" id="weeklyLoggedOut" data-i18n="weekly.loginToCompete" hidden>Log in to compete in this week's challenge.</p>
+    </aside>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/grid.js"></script>
+<script src="/static/weekly.js"></script>
+{% endblock %}

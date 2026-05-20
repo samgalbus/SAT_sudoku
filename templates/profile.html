@@ -1,0 +1,41 @@
+{% extends "_base.html" %}
+
+{% block title %}{{ username }}{% endblock %}
+
+{% block content %}
+<section class="profile-page" data-username="{{ username }}">
+  <header class="profile-header">
+    <h1 id="profileUsername">{{ username }}</h1>
+    <p class="profile-meta" id="profileMember"></p>
+    <p class="profile-meta" id="profileCount"></p>
+  </header>
+
+  <section class="profile-section">
+    <h2 data-i18n="profile.bestTimes">Best times per difficulty</h2>
+    <div class="profile-best">
+      <div class="profile-best-card" data-diff="easy">
+        <span class="card-label" data-i18n="diff.easy">Easy</span>
+        <span class="card-time" id="bestEasy">—</span>
+      </div>
+      <div class="profile-best-card" data-diff="medium">
+        <span class="card-label" data-i18n="diff.medium">Medium</span>
+        <span class="card-time" id="bestMedium">—</span>
+      </div>
+      <div class="profile-best-card" data-diff="hard">
+        <span class="card-label" data-i18n="diff.hard">Hard</span>
+        <span class="card-time" id="bestHard">—</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="profile-section">
+    <h2 data-i18n="profile.recent">Recent weekly results</h2>
+    <ul class="profile-recent" id="profileRecent"></ul>
+    <p class="profile-empty" id="profileEmpty" hidden data-i18n="leaderboard.empty">No finishes yet.</p>
+  </section>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/profile.js"></script>
+{% endblock %}
