@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="{% block title_key %}title{% endblock %}">{% block title %}Sudoku{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap">
+  <link rel="stylesheet" href="/static/sudoku.css">
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  <header class="topnav">
+    <a class="brand" href="/" data-i18n="nav.brand">Sudoku</a>
+    <nav class="topnav-tabs">
+      <a href="/solver"      data-nav="solver"      data-i18n="nav.solver">SAT Solver</a>
+      <a href="/play"        data-nav="play"        data-i18n="nav.freeplay">Play</a>
+      <a href="/weekly"      data-nav="weekly"      data-i18n="nav.weekly">Weekly Challenge</a>
+      <a href="/leaderboard" data-nav="leaderboard" data-i18n="nav.leaderboard">Leaderboard</a>
+    </nav>
+    <div class="topnav-auth">
+      <button type="button" id="navLoginBtn" class="nav-btn" data-i18n="nav.login" hidden>Login / Register</button>
+      <div id="navUserMenu" class="nav-user" hidden>
+        <a id="navUserName" class="nav-username" href="#">user</a>
+        <button type="button" id="navUserToggle" class="nav-btn nav-caret" aria-label="account menu">▾</button>
+        <div id="navUserDropdown" class="nav-dropdown" hidden>
+          <a id="navProfileLink" href="#" data-i18n="nav.profile">Profile</a>
+          <button type="button" id="navChangePw" data-i18n="nav.changePw">Change password</button>
+          <button type="button" id="navLogout"   data-i18n="nav.logout">Logout</button>
+          <button type="button" id="navDelete"   data-i18n="nav.delete">Delete account</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  {% block content %}{% endblock %}
+
+  <!-- Auth modal -->
+  <div id="authModal" class="modal" hidden>
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <button type="button" class="modal-close" data-close-modal aria-label="close">×</button>
+
+      <div id="authPanelLogin" class="auth-panel">
+        <h2 data-i18n="auth.loginTitle">Log in</h2>
+        <form id="loginForm" class="auth-form">
+          <label><span data-i18n="auth.username">Username</span>
+            <input type="text" name="username" autocomplete="username" required>
+          </label>
+          <label><span data-i18n="auth.password">Password</span>
+            <input type="password" name="password" autocomplete="current-password" required>
+          </label>
+          <p class="auth-error" id="loginError" hidden></p>
+          <button type="submit" data-i18n="auth.login">Log in</button>
+        </form>
+        <p class="auth-switch">
+          <a href="#" data-auth-switch="forgot" data-i18n="auth.forgotLink">Forgot password?</a>
+          ·
+          <a href="#" data-auth-switch="register" data-i18n="auth.toRegister">Create account</a>
+        </p>
+      </div>
+
+      <div id="authPanelRegister" class="auth-panel" hidden>
+        <h2 data-i18n="auth.registerTitle">Create account</h2>
+        <form id="registerForm" class="auth-form">
+          <label><span data-i18n="auth.username">Username</span>
+            <input type="text" name="username" autocomplete="username" required pattern="[A-Za-z0-9_]{3,20}">
+          </label>
+          <label><span data-i18n="auth.email">Email</span>
+            <input type="email" name="email" autocomplete="email" required>
+          </label>
+          <label><span data-i18n="auth.password">Password</span>
+            <input type="password" name="password" autocomplete="new-password" required minlength="8">
+          </label>
+          <label><span data-i18n="auth.confirm">Confirm password</span>
+            <input type="password" name="confirm" autocomplete="new-password" required minlength="8">
+          </label>
+          <p class="auth-error" id="registerError" hidden></p>
+          <button type="submit" data-i18n="auth.register">Create account</button>
+        </form>
+        <p class="auth-switch">
+          <a href="#" data-auth-switch="login" data-i18n="auth.toLogin">Already have an account? Log in</a>
+        </p>
+      </div>
+
+      <div id="authPanelForgot" class="auth-panel" hidden>
+        <h2 data-i18n="auth.forgotTitle">Reset password</h2>
+        <form id="forgotForm" class="auth-form">
+          <label><span data-i18n="auth.email">Email</span>
+            <input type="email" name="email" autocomplete="email" required>
+          </label>
+          <p class="auth-error" id="forgotError" hidden></p>
+          <p class="auth-info" id="forgotInfo" hidden></p>
+          <button type="submit" data-i18n="auth.sendReset">Send reset link</button>
+        </form>
+        <p class="auth-switch">
+          <a href="#" data-auth-switch="login" data-i18n="auth.toLogin">Back to login</a>
+        </p>
+      </div>
+
+      <div id="authPanelChangePw" class="auth-panel" hidden>
+        <h2 data-i18n="auth.changePwTitle">Change password</h2>
+        <form id="changePwForm" class="auth-form">
+          <label><span data-i18n="auth.oldPassword">Current password</span>
+            <input type="password" name="old" autocomplete="current-password" required>
+          </label>
+          <label><span data-i18n="auth.newPassword">New password</span>
+            <input type="password" name="new" autocomplete="new-password" required minlength="8">
+          </label>
+          <p class="auth-error" id="changePwError" hidden></p>
+          <button type="submit" data-i18n="auth.savePassword">Save</button>
+        </form>
+      </div>
+
+      <div id="authPanelDelete" class="auth-panel" hidden>
+        <h2 data-i18n="auth.deleteTitle">Delete account</h2>
+        <p class="auth-warn" data-i18n="auth.deleteWarn">
+          Your username and email will be wiped. Your past leaderboard times will remain but appear as "[deleted user]".
+        </p>
+        <form id="deleteForm" class="auth-form">
+          <label><span data-i18n="auth.password">Password</span>
+            <input type="password" name="password" autocomplete="current-password" required>
+          </label>
+          <p class="auth-error" id="deleteError" hidden></p>
+          <button type="submit" class="danger" data-i18n="auth.confirmDelete">Delete my account</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div id="toasts"></div>
+
+  <script src="/static/i18n.js"></script>
+  <script src="/static/auth.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

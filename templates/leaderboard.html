@@ -1,0 +1,43 @@
+{% extends "_base.html" %}
+
+{% block title %}Leaderboard{% endblock %}
+{% block title_key %}leaderboard.title{% endblock %}
+
+{% block content %}
+<section class="leaderboard-page">
+  <header class="leaderboard-header">
+    <h1 data-i18n="leaderboard.title">Leaderboard</h1>
+    <p class="weekly-week" id="lbWeekLabel"></p>
+  </header>
+
+  <div class="weekly-diff-tabs" role="tablist">
+    <button type="button" class="diff-tab active" data-diff="easy"   data-i18n="diff.easy">Easy</button>
+    <button type="button" class="diff-tab"        data-diff="medium" data-i18n="diff.medium">Medium</button>
+    <button type="button" class="diff-tab"        data-diff="hard"   data-i18n="diff.hard">Hard</button>
+  </div>
+
+  <p class="leaderboard-stat" id="lbStat"></p>
+
+  <table class="leaderboard-table" id="lbTable">
+    <thead>
+      <tr>
+        <th data-i18n="leaderboard.colRank">#</th>
+        <th data-i18n="leaderboard.colPlayer">Player</th>
+        <th data-i18n="leaderboard.colTime">Time</th>
+        <th data-i18n="leaderboard.colFinished">Finished</th>
+      </tr>
+    </thead>
+    <tbody id="lbBody"></tbody>
+    <tfoot id="lbSelfFoot" hidden>
+      <tr><td colspan="4" class="lb-self-label" data-i18n="leaderboard.outsideTop">Your rank</td></tr>
+      <tr id="lbSelfRow"></tr>
+    </tfoot>
+  </table>
+
+  <p class="leaderboard-empty" id="lbEmpty" data-i18n="leaderboard.empty" hidden>No one has finished this puzzle yet. Be the first!</p>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/leaderboard.js"></script>
+{% endblock %}

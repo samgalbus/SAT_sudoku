@@ -1,0 +1,44 @@
+{% extends "_base.html" %}
+
+{% block title %}SAT Solver{% endblock %}
+{% block title_key %}solver.title{% endblock %}
+
+{% block content %}
+<div class="page">
+  <div class="grids">
+    <div class="grid-wrap">
+      <div class="grid-label" data-i18n="solver.input">Input</div>
+      <div id="solverGrid" class="primary-grid"></div>
+    </div>
+    <div class="grid-wrap" id="solverSolutionWrap" hidden>
+      <div class="grid-label" data-i18n="label.solutionGrid">Solution</div>
+      <div id="solverSolutionGrid" class="solution-grid"></div>
+    </div>
+  </div>
+
+  <aside class="panel">
+    <h1 data-i18n="solver.title">SAT Solver</h1>
+    <p class="panel-blurb" data-i18n="solver.subtitle">Paste or type a Sudoku, then click Solve to run the SAT-based solver.</p>
+
+    <div class="row">
+      <button id="solverSolve" type="button" class="primary" data-i18n="solver.solve">Solve</button>
+      <button id="solverClear" type="button" data-i18n="solver.clear">Clear</button>
+    </div>
+
+    <details>
+      <summary data-i18n="section.import">Import puzzle</summary>
+      <label for="solverMatrix" data-i18n="label.paste">Paste 9 lines:</label>
+      <textarea id="solverMatrix" spellcheck="false" placeholder="400003002&#10;092780540&#10;030009010&#10;609000020&#10;070000060&#10;050000107&#10;060800050&#10;025074680&#10;700900001"></textarea>
+      <label for="solverUpload" data-i18n="label.upload">Or upload .txt:</label>
+      <input type="file" id="solverUpload" accept=".txt,text/plain">
+    </details>
+
+    <p id="solverStatus"></p>
+  </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/grid.js"></script>
+<script src="/static/solver.js"></script>
+{% endblock %}

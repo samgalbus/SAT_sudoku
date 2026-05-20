@@ -20,7 +20,6 @@ const state = {
   startedAt: null,      // Date.now() when timer started
   timerHandle: null,
   elapsedAtStart: 0,    // resumed elapsed ms (for restore)
-  lang: "en",
   settings: {
     liveValidate: false,
     timerEnabled: true,
@@ -30,135 +29,8 @@ const state = {
   validateTimeout: null,
 };
 
-// ============================================================
-//  I18N
-// ============================================================
-
-const I18N = {
-  en: {
-    "title": "Sudoku Solver",
-    "diff.easy":   "Easy",
-    "diff.medium": "Medium",
-    "diff.hard":   "Hard",
-    "diff.expert": "Expert",
-    "btn.new":          "New Game",
-    "btn.solve":        "Solve",
-    "btn.check":        "Check",
-    "btn.hint":         "Hint",
-    "btn.clearEntries": "Clear my entries",
-    "btn.clearAll":     "Clear everything",
-    "section.import":   "Import puzzle",
-    "section.settings": "Settings",
-    "label.paste":      "Paste 9 lines:",
-    "label.upload":     "Or upload .txt:",
-    "label.primaryGrid":  "Your puzzle",
-    "label.solutionGrid": "Solution",
-    "label.time":         "Time:",
-    "set.liveErrors":     "Live error detection",
-    "set.timer":          "Show timer",
-    "set.lang":           "Language:",
-    "set.restartTutorial":"Restart tutorial",
-    "toast.solved":            "Solved! Solution is shown on the right.",
-    "toast.unsolvable":        "Puzzle is unsolvable.",
-    "toast.timeout":           "Solver timed out.",
-    "toast.fallback":          "Your entries conflicted with the puzzle — showing the canonical solution.",
-    "toast.allCorrect":        "All correct! Puzzle complete.",
-    "toast.partialCorrect":    (right, wrong) => `${right} cell(s) correct, ${wrong} wrong.`,
-    "toast.noEntries":         "Fill in some cells first.",
-    "toast.invalidImport":     "Invalid 9x9 matrix.",
-    "toast.imported":          "Puzzle imported.",
-    "toast.cleared":           "Grid cleared.",
-    "toast.entriesCleared":    "Your entries cleared.",
-    "toast.generated":         (d, n) => `New ${d} puzzle generated (${n} clues).`,
-    "toast.generating":        "Generating puzzle...",
-    "toast.hintsExhausted":    "No hints remaining for this puzzle.",
-    "toast.hintComplete":      "Puzzle is already complete.",
-    "toast.hintPlaced":        "Hint placed.",
-    "toast.networkError":      "Network error.",
-    "toast.solverUnavailable": "SAT solver (z3) not available on the server. Run: brew install z3",
-    "toast.uploadError":       "Could not read file.",
-    "tutorial.title":   "Welcome to Sudoku Solver",
-    "tutorial.step1":   "Pick a difficulty and click \"New Game\" to generate a uniquely-solvable puzzle.",
-    "tutorial.step2":   "Stuck? Click \"Hint\" to reveal one correct cell. You get 3 hints per puzzle.",
-    "tutorial.step3":   "Click \"Check\" to see which of your entries are right (green) or wrong (red).",
-    "tutorial.step4":   "Click \"Solve\" to see the canonical solution side-by-side with your attempt.",
-    "tutorial.next":    "Next",
-    "tutorial.prev":    "Back",
-    "tutorial.done":    "Got it!",
-    "tutorial.skip":    "Skip",
-  },
-  it: {
-    "title": "Risolutore Sudoku",
-    "diff.easy":   "Facile",
-    "diff.medium": "Medio",
-    "diff.hard":   "Difficile",
-    "diff.expert": "Esperto",
-    "btn.new":          "Nuova partita",
-    "btn.solve":        "Risolvi",
-    "btn.check":        "Controlla",
-    "btn.hint":         "Suggerimento",
-    "btn.clearEntries": "Cancella le mie voci",
-    "btn.clearAll":     "Cancella tutto",
-    "section.import":   "Importa puzzle",
-    "section.settings": "Impostazioni",
-    "label.paste":      "Incolla 9 righe:",
-    "label.upload":     "O carica .txt:",
-    "label.primaryGrid":  "Il tuo puzzle",
-    "label.solutionGrid": "Soluzione",
-    "label.time":         "Tempo:",
-    "set.liveErrors":     "Rilevamento errori in tempo reale",
-    "set.timer":          "Mostra timer",
-    "set.lang":           "Lingua:",
-    "set.restartTutorial":"Riavvia tutorial",
-    "toast.solved":            "Risolto! La soluzione è mostrata a destra.",
-    "toast.unsolvable":        "Il puzzle non è risolvibile.",
-    "toast.timeout":           "Tempo scaduto.",
-    "toast.fallback":          "Le tue voci sono in conflitto con il puzzle — viene mostrata la soluzione canonica.",
-    "toast.allCorrect":        "Tutto corretto! Puzzle completato.",
-    "toast.partialCorrect":    (right, wrong) => `${right} cella/e corrette, ${wrong} sbagliate.`,
-    "toast.noEntries":         "Inserisci prima alcune celle.",
-    "toast.invalidImport":     "Matrice 9x9 non valida.",
-    "toast.imported":          "Puzzle importato.",
-    "toast.cleared":           "Griglia pulita.",
-    "toast.entriesCleared":    "Le tue voci sono state cancellate.",
-    "toast.generated":         (d, n) => `Nuovo puzzle ${d} generato (${n} indizi).`,
-    "toast.generating":        "Generazione puzzle in corso...",
-    "toast.hintsExhausted":    "Nessun suggerimento rimasto per questo puzzle.",
-    "toast.hintComplete":      "Il puzzle è già completo.",
-    "toast.hintPlaced":        "Suggerimento posizionato.",
-    "toast.networkError":      "Errore di rete.",
-    "toast.solverUnavailable": "Risolutore SAT (z3) non disponibile sul server. Esegui: brew install z3",
-    "toast.uploadError":       "Impossibile leggere il file.",
-    "tutorial.title":   "Benvenuto nel Risolutore Sudoku",
-    "tutorial.step1":   "Scegli una difficoltà e clicca \"Nuova partita\" per generare un puzzle a soluzione unica.",
-    "tutorial.step2":   "Bloccato? Clicca \"Suggerimento\" per rivelare una cella corretta. Hai 3 suggerimenti per puzzle.",
-    "tutorial.step3":   "Clicca \"Controlla\" per vedere quali voci sono giuste (verde) o sbagliate (rosso).",
-    "tutorial.step4":   "Clicca \"Risolvi\" per vedere la soluzione canonica accanto al tuo tentativo.",
-    "tutorial.next":    "Avanti",
-    "tutorial.prev":    "Indietro",
-    "tutorial.done":    "Capito!",
-    "tutorial.skip":    "Salta",
-  },
-};
-
-function t(key, ...args) {
-  const dict = I18N[state.lang] || I18N.en;
-  const val = dict[key] ?? I18N.en[key] ?? key;
-  return typeof val === "function" ? val(...args) : val;
-}
-
-function applyI18n() {
-  document.documentElement.lang = state.lang;
-  document.querySelectorAll("[data-i18n]").forEach(el => {
-    const key = el.getAttribute("data-i18n");
-    const text = t(key);
-    if (el.tagName === "TITLE") {
-      el.textContent = text;
-    } else {
-      el.textContent = text;
-    }
-  });
-}
+// I18N lives in static/i18n.js (loaded before this file).
+// window.t(key, ...args) and window.applyI18n() are available globally.
 
 // ============================================================
 //  STORAGE
@@ -175,14 +47,16 @@ function loadSettings() {
     const raw = localStorage.getItem(STORAGE.settings);
     if (raw) Object.assign(state.settings, JSON.parse(raw));
   } catch (e) { /* corrupt storage - ignore */ }
-  // Lang lives in settings but is also a top-level field for convenience.
-  state.lang = state.settings.lang || "en";
+  // Language is owned by i18n.js (also reads sudoku.settings), so we don't track it here.
 }
 
 function saveSettings() {
-  state.settings.lang = state.lang;
+  // Preserve any lang field that i18n.js wrote (read-modify-write merge).
+  let existing = {};
+  try { existing = JSON.parse(localStorage.getItem(STORAGE.settings) || "{}"); } catch (e) {}
+  const merged = { ...existing, ...state.settings };
   try {
-    localStorage.setItem(STORAGE.settings, JSON.stringify(state.settings));
+    localStorage.setItem(STORAGE.settings, JSON.stringify(merged));
   } catch (e) { /* quota - ignore */ }
 }
 
@@ -437,7 +311,23 @@ function focusCell(r, c) {
 //  ACTIONS
 // ============================================================
 
+function showRevealModal() {
+  const modal = document.getElementById("revealModal");
+  if (!modal) return false;
+  modal.hidden = false;
+  return true;
+}
+
+function closeRevealModal() {
+  const modal = document.getElementById("revealModal");
+  if (modal) modal.hidden = true;
+}
+
 async function onSolve() {
+  if (!showRevealModal()) await runSolveFlow();
+}
+
+async function runSolveFlow() {
   const button = document.getElementById("solve");
   button.disabled = true;
   setStatus(t("toast.generating"));
@@ -448,6 +338,8 @@ async function onSolve() {
     });
     if (data.success) {
       showSolutionGrid(data.solution);
+      stopTimer();
+      savePuzzleState();
       if (data.fallback_used) {
         toast(t("toast.fallback"), "warn", 5000);
       } else {
@@ -862,7 +754,7 @@ function wireSettings() {
   const lang = document.getElementById("langSelect");
   live.checked = !!state.settings.liveValidate;
   timerCb.checked = state.settings.timerEnabled !== false;
-  lang.value = state.lang;
+  lang.value = window.getLang ? window.getLang() : "en";
   setTimerVisible(timerCb.checked);
 
   live.addEventListener("change", () => {
@@ -885,9 +777,7 @@ function wireSettings() {
     saveSettings();
   });
   lang.addEventListener("change", () => {
-    state.lang = lang.value;
-    saveSettings();
-    applyI18n();
+    if (window.setLang) window.setLang(lang.value);
   });
 
   document.getElementById("restartTutorial").addEventListener("click", () => showTutorial());
@@ -895,6 +785,13 @@ function wireSettings() {
 
 function wireButtons() {
   document.getElementById("solve").addEventListener("click", onSolve);
+  document.getElementById("revealConfirm").addEventListener("click", async () => {
+    closeRevealModal();
+    await runSolveFlow();
+  });
+  document.querySelectorAll("[data-close-reveal]").forEach(el => {
+    el.addEventListener("click", closeRevealModal);
+  });
   document.getElementById("check").addEventListener("click", onCheck);
   document.getElementById("hint").addEventListener("click", onHint);
   document.getElementById("generate").addEventListener("click", onGenerate);
@@ -914,7 +811,9 @@ function wireButtons() {
   document.getElementById("tutorialSkip").addEventListener("click", () => closeTutorial(true));
 
   document.addEventListener("keydown", e => {
-    if (e.key === "Escape" && !document.getElementById("tutorial").hidden) {
+    if (e.key === "Escape" && !document.getElementById("revealModal").hidden) {
+      closeRevealModal();
+    } else if (e.key === "Escape" && !document.getElementById("tutorial").hidden) {
       closeTutorial(true);
     }
   });
