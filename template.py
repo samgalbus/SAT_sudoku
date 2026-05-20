@@ -11,10 +11,12 @@ SATsolver=defSATsolver
 import sys
 from subprocess import Popen
 from subprocess import PIPE
+from subprocess import TimeoutExpired
 import re
 import random
 import os
 import shutil
+import shlex
 
 gVarNumberToName = ["invalid"]
 gVarNameToNumber = {}
@@ -231,7 +233,13 @@ def toMatrix(res):
 #It takes an initial sudoku board and it returns its solution
 #Input: 9x9 matrix representing a sudoku initial board with 0 representing an empty cell
 #Output: 9x9 matrix representing the input solution if the input is satisfiable. It returns None if the input is unsatisfiable
-def solveBoard(board):
+def solveBoard(board, cnf_path="tmp_prob.cnf", timeout_s=30):
+    # Reset module-level encoding state so repeated calls in a long-running
+    # server process don't accumulate stale variable names across requests.
+    global gVarNumberToName, gVarNameToNumber
+    gVarNumberToName[:] = ["invalid"]
+    gVarNameToNumber.clear()
+
     path = shutil.which(SATsolver.split()[0])
     if path is None:
         if SATsolver == defSATsolver:
@@ -248,13 +256,22 @@ def solveBoard(board):
     head = getDimacsHeader(clauses)
     cnf = toDimacsCnf(clauses)
 
-    # Here we create a temporary cnf file for SATsolver
-    fl = open("tmp_prob.cnf", "w")
+    # Per-request CNF file path lets concurrent server requests avoid colliding
+    # on a shared "tmp_prob.cnf"; default preserves CLI behavior.
+    fl = open(cnf_path, "w")
     fl.write("\n".join([head, cnf]) + "\n")
     fl.close()
 
-    # Run the SATsolver
-    solverOutput = Popen([SATsolver + " tmp_prob.cnf"], stdout=PIPE, shell=True).communicate()[0]
+    # Run the SATsolver with timeout; kill the child on expiry so it doesn't
+    # leak as a zombie.
+    proc = Popen([SATsolver + " " + shlex.quote(cnf_path)], stdout=PIPE, shell=True)
+    try:
+        solverOutput = proc.communicate(timeout=timeout_s)[0]
+    except TimeoutExpired:
+        proc.kill()
+        proc.communicate()
+        raise
+
     res = solverOutput.decode('utf-8')
     if "UNSATISFIABLE" in res:
         return None
