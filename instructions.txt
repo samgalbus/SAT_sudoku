@@ -1,0 +1,43 @@
+https://credibledev.com/python-flask-dev-environment-on-manjaro-linux/
+
+1. Installation Process
+2. Usage
+
+        ### Installation Process ###
+# install python, install pip
+    \=====> like brew install python and python-pip, or something...
+
+- python -m venv cdflask
+    \=====> this makes a venv named cdflask. You can use python3, if 'python' is not in PATH
+
+- source ~/cdflask/bin/activate
+    \=====> this throws you into the venv
+
+### Inside a Virtual Environment 'cdflask':
+- pip install flask
+...
+    \=====> this installs dependencies
+
+- flask run
+    \=====> test the venv and app.py
+
+
+# When done playing around, just Ctrl+C / Cmd+C to quit
+- deactivate
+    \=====> this quits the venv
+
+
+
+
+
+
+
+
+
+            ### Usage ###
+source ~/cdflask/bin/activate
+flask run
+    \=====> you can open your http://127.0.0.1:500,
+            or whatever you are being fed by the flask app log
+
+

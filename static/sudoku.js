@@ -83,5 +83,45 @@ clearButton.addEventListener("click", () => {
 });
 
 solveButton.addEventListener("click", () => {
+
+  const board = [];
+  for (let row = 0; row < 9; row++) {
+    const rowData = [];
+    for (let col = 0; col < 9; col++) {
+      rowData.push(cells[row][col].value);
+    }
+    board.push(rowData);
+  }
+
+  // Send to backend
+  fetch('/solve', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ board })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      console.log('Solution:', data.solution);
+      // Populate the grid with the solution
+      for (let row = 0; row < 9; row++) {
+        for (let col = 0; col < 9; col++) {
+          cells[row][col].value = data.solution[row][col];
+        }
+      }
+      statusText.textContent = "Puzzle solved!";
+    } else {
+      statusText.textContent = data.message;
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    statusText.textContent = "Error solving puzzle";
+  });
+
+
+
   statusText.textContent = "Solve non disponibile.";
 });
