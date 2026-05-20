@@ -53,13 +53,36 @@
   }
 
   async function onSolve() {
+    let board = state.grid.readBoard();
+    const matrixText = document.getElementById("solverMatrix").value;
+    if (!boardHasEntries(board) && matrixText.trim()) {
+      const imported = parseMatrixText(matrixText);
+      if (!imported) {
+        const message = t("toast.invalidImport");
+        hideSolutionGrid();
+        setStatus(message);
+        Auth.toast(message, "error", 5000);
+        return;
+      }
+      applyImported(imported);
+      board = imported;
+    }
+
+    if (!boardHasEntries(board)) {
+      const message = t("toast.noSudokuInput");
+      hideSolutionGrid();
+      setStatus(message);
+      Auth.toast(message, "error", 4500);
+      return;
+    }
+
     const button = document.getElementById("solverSolve");
     button.disabled = true;
-    setStatus(t("toast.generating"));
+    setStatus(t("toast.solving"));
     try {
       const { status, json } = await Auth.fetchJSON("/solve", {
         method: "POST",
-        body: { board: state.grid.readBoard() },
+        body: { board },
       });
       if (json.success) {
         showSolutionGrid(json.solution);
@@ -89,6 +112,10 @@
 
   function blankBoard() {
     return Array.from({ length: 9 }, () => Array(9).fill(0));
+  }
+
+  function boardHasEntries(board) {
+    return board.some(row => row.some(value => value !== 0));
   }
 
   function parseMatrixText(text) {
@@ -126,6 +153,7 @@
     reader.onload = e => {
       const grid = parseMatrixText(e.target.result);
       if (!grid) {
+        setStatus(t("toast.invalidImport"));
         Auth.toast(t("toast.invalidImport"), "error");
         return;
       }

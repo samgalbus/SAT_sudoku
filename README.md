@@ -1,6 +1,6 @@
 # Sudoku SAT Solver
 
-A web-based Sudoku solver and puzzle generator. The solving engine encodes
+A web-based Sudoku solver and sudoku generator. The solving engine encodes
 Sudoku as a Boolean satisfiability problem and dispatches the resulting DIMACS
 CNF to the **z3** SAT solver via subprocess — no arithmetic constraints, no
 third-party Sudoku solver, just pure propositional SAT.
@@ -30,7 +30,7 @@ third-party Sudoku solver, just pure propositional SAT.
   Includes the original CLI: `python3 template.py input.txt output.txt`.
 - `app.py` — Flask server: serves the page, wraps `solveBoard` with per-request
   CNF temp files, a global lock, subprocess timeout, and a SQLite cache for
-  puzzles created by `/generate`.
+  sudokus created by `/generate`.
 - `templates/sudoku.html` — page markup (dual-grid layout + settings + tutorial).
 - `static/sudoku.js` — all UI behavior in vanilla JS (no build step).
 - `static/sudoku.css` — themed with CSS custom properties.
@@ -55,25 +55,25 @@ Open <http://127.0.0.1:5000> in a browser.
 
 ## Features
 
-- **Dual-grid view** — the left grid is your editable puzzle; after pressing
+- **Dual-grid view** — the left grid is your editable sudoku; after pressing
   **Solve** the canonical solution appears on the right for side-by-side
   comparison. Your attempt is preserved.
-- **Generate** — random, **uniqueness-verified** puzzles at four difficulty
+- **Generate** — random, **uniqueness-verified** sudokus at four difficulty
   levels (Easy = 40 clues, Medium = 30, Hard = 25, Expert = 22). Uses
   symmetric clue removal for a polished look.
-- **Smart-fallback solve** — if your entries conflict with the puzzle, Solve
+- **Smart-fallback solve** — if your entries conflict with the sudoku, Solve
   detects the UNSAT, retries from the cached clues, and tells you.
 - **Check** — per-cell correctness against the cached solution. Highlights
   correct cells green and wrong cells red. Records your time when complete.
 - **Hint** — reveals one correct cell, locked so it can't be erased. Three
-  hints per puzzle, refilled on each new game.
+  hints per sudoku, refilled on each new game.
 - **Live error detection** (toggleable) — debounced 200ms server-side
   structural duplicate scan, outlines conflicting cells in red.
 - **Paste / upload** — accepts any 9-line `.txt` matrix (digits 0-9, 0 = empty).
 - **EN / IT i18n** — toggle in Settings; all UI text is translated.
 - **Tutorial overlay** — 4-step walkthrough on first load. Restartable from
   Settings.
-- **Resume on reload** — your puzzle, clues, hints, entries, and elapsed time
+- **Resume on reload** — your sudoku, clues, hints, entries, and elapsed time
   are saved to `localStorage` and restored if you close and reopen the tab.
 - **Keyboard navigation** — arrow keys, Tab/Shift-Tab, 1-9 to type, Backspace
   to erase.
@@ -132,10 +132,10 @@ input.txt / output.txt  CLI samples (gitignored)
 ## Known limitations
 
 - Hint rate-limiting is enforced only on the client. A user with devtools could
-  call `/hint` directly more often than 3 times per puzzle.
+  call `/hint` directly more often than 3 times per sudoku.
 - Uniqueness verification during `/generate` uses a backtracking solution
   counter (not SAT) since `solveBoard` returns only one model. Generation
   alone is *not* SAT-encoded; this is consistent with the spec, which permits
-  backtracking for puzzle generation.
+  backtracking for sudoku generation.
 - Resume-on-reload does not preserve `.correct`/`.wrong` decorations from a
   prior Check — they're cosmetic and will reappear on the next Check.

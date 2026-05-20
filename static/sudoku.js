@@ -11,7 +11,7 @@
 const state = {
   cells: [],            // 9x9 of HTMLInputElement (primary, editable)
   solutionCells: [],    // 9x9 of HTMLInputElement (solution grid, read-only)
-  clues: new Set(),     // "r,c" strings - cells originally given by puzzle
+  clues: new Set(),     // "r,c" strings - cells originally given by sudoku
   hintCells: new Set(), // "r,c" strings - cells filled via Hint
   hintsUsed: 0,
   hintsMax: 3,
@@ -626,7 +626,7 @@ function importGrid(grid) {
   state.clues.clear();
   state.hintCells.clear();
   state.hintsUsed = 0;
-  state.puzzleId = null;  // pasted/uploaded puzzles aren't in the server cache
+    state.puzzleId = null;  // pasted/uploaded sudokus aren't in the server cache
   state.elapsedAtStart = 0;
   for (let r = 0; r < 9; r++) {
     for (let c = 0; c < 9; c++) {
@@ -704,7 +704,7 @@ function maybeShowTutorial() {
 }
 
 // ============================================================
-//  RESTORE LAST PUZZLE
+//  RESTORE LAST SUDOKU
 // ============================================================
 
 function restoreLastPuzzle() {

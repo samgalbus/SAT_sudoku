@@ -2,7 +2,7 @@
 
 The SAT encoding lives in template.py and is graded as-is. This module owns
 everything around it: per-request CNF temp files, concurrency lock (template.py
-mutates module globals during encoding), subprocess timeout, SQLite puzzle
+mutates module globals during encoding), subprocess timeout, SQLite sudoku
 cache, and the JSON API the frontend talks to.
 
 Endpoints (POST, JSON):
@@ -10,7 +10,7 @@ Endpoints (POST, JSON):
     /check     - per-cell correct/wrong vs cached solution           (Phase C)
     /hint      - return one correct cell from the solver             (Phase D)
     /validate  - structural duplicate scan, no solver call           (Phase C)
-    /generate  - random uniquely-solvable puzzle for chosen difficulty (Phase E)
+    /generate  - random uniquely-solvable sudoku for chosen difficulty (Phase E)
 """
 
 import contextlib
@@ -243,7 +243,7 @@ def _validate_email(value):
 
 
 def _get_or_create_weekly_puzzle(week_id, difficulty):
-    """Returns this (week, difficulty)'s puzzle row, generating it on first request.
+    """Returns this (week, difficulty)'s sudoku row, generating it on first request.
 
     Serialized via WEEKLY_GEN_LOCK to keep two simultaneous first-visitors from
     each running _generate_puzzle. INSERT OR IGNORE means the loser of the race
@@ -453,11 +453,11 @@ def _find_conflicts(grid):
     return [[r, c] for (r, c) in sorted(conflicts)]
 
 
-# ---------------------------- Backtracking (puzzle generation only) ----------------------------
+# ---------------------------- Backtracking (sudoku generation only) ----------------------------
 #
-# These helpers are used ONLY for random puzzle generation:
+# These helpers are used ONLY for random sudoku generation:
 #   _backtrack_fill   - produce a complete random valid grid to start from
-#   _has_unique_sol   - verify a generated puzzle has exactly one solution
+#   _has_unique_sol   - verify a generated sudoku has exactly one solution
 #
 # The actual /solve, /check, /hint endpoints still use the SAT encoding in
 # template.py. Backtracking here is a generation utility, not a competing
@@ -495,7 +495,7 @@ def _backtrack_fill(grid):
 
 def _count_solutions_upto(grid, limit=2):
     """Backtracking solution counter with early termination at `limit`. Used
-    to verify uniqueness during puzzle generation; not exposed via the API."""
+    to verify uniqueness during sudoku generation; not exposed via the API."""
     grid = [row[:] for row in grid]
     count = [0]
 
@@ -732,10 +732,10 @@ def solve():
                 "puzzle_id": puzzle_id,
                 "elapsed_ms": int((time.time() - started) * 1000),
                 "fallback_used": True,
-                "message": "Your entries conflicted with the puzzle; showing the canonical solution.",
+                "message": "Your entries conflicted with the sudoku; showing the canonical solution.",
             })
 
-    return jsonify({"success": False, "message": "Puzzle is unsolvable"})
+    return jsonify({"success": False, "message": "Sudoku is unsolvable"})
 
 
 @app.post("/check")
@@ -752,7 +752,7 @@ def check():
     if cached is not None:
         solution = cached["solution"]
     else:
-        # No cached puzzle - re-solve to get a reference. Empty cells in the
+        # No cached sudoku - re-solve to get a reference. Empty cells in the
         # user grid are fine; the solver completes them.
         try:
             solution = _solve_with_temp(grid)
@@ -810,11 +810,11 @@ def hint():
         except SystemExit:
             return jsonify({"success": False, "message": "SAT solver (z3) not available"}), 500
         if solution is None:
-            return jsonify({"success": False, "message": "Puzzle is unsolvable"})
+            return jsonify({"success": False, "message": "Sudoku is unsolvable"})
 
     empties = [(r, c) for r in range(9) for c in range(9) if grid[r][c] == 0]
     if not empties:
-        return jsonify({"success": False, "message": "Puzzle is already complete"})
+        return jsonify({"success": False, "message": "Sudoku is already complete"})
 
     r, c = random.choice(empties)
     resp = {"success": True, "row": r, "col": c, "value": solution[r][c]}
@@ -1189,7 +1189,7 @@ def weekly_submit(user):
             "SELECT solution_json FROM weekly_puzzles WHERE id = ?", (row["puzzle_id"],)
         ).fetchone()
         if puzzle_row is None:
-            return jsonify({"success": False, "message": "Puzzle missing"}), 500
+            return jsonify({"success": False, "message": "Sudoku missing"}), 500
         solution = json.loads(puzzle_row["solution_json"])
 
         wrong_cells = []
