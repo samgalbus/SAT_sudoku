@@ -40,7 +40,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from template import solveBoard
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "puzzles.db")
+DB_PATH = os.environ.get("SUDOKU_DB_PATH", os.path.join(BASE_DIR, "puzzles.db"))
 SOLVER_LOCK = threading.Lock()
 WEEKLY_GEN_LOCK = threading.Lock()
 DIFFICULTY_CLUES = {"easy": 40, "medium": 30, "hard": 25, "expert": 22}
@@ -67,6 +67,9 @@ def _db_connect():
 
 
 def _init_db():
+    db_dir = os.path.dirname(DB_PATH)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
     conn = _db_connect()
     try:
         conn.execute(
@@ -1429,16 +1432,17 @@ def _mark_active_weekly_disqualified(user_id, puzzle_id):
         conn.close()
 
 
+_init_db()
+
 if __name__ == "__main__":
     if shutil.which("z3") is None:
         print(
             "WARNING: z3 not on PATH; /solve will fail until you run `brew install z3`.",
             file=sys.stderr,
         )
-    _init_db()
     app.run(
-        host="127.0.0.1",
+        host=os.environ.get("SUDOKU_HOST", "127.0.0.1"),
         port=int(os.environ.get("SUDOKU_PORT", "5000")),
         threaded=True,
-        debug=True,
+        debug=os.environ.get("SUDOKU_DEBUG", "1") == "1",
     )

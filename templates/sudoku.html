@@ -1,5 +1,8 @@
 {% extends "_base.html" %}
 
+{% block title %}Play{% endblock %}
+{% block title_key %}nav.freeplay{% endblock %}
+
 {% block content %}
 <div class="page">
   <div class="grids">
@@ -34,7 +37,7 @@
 
     <div class="row">
       <button id="clearEntries" type="button" data-i18n="btn.clearEntries">Clear my entries</button>
-      <button id="clear"        type="button" data-i18n="btn.clearAll">Clear everything</button>
+      <button id="clear"        type="button" class="danger" data-i18n="btn.clearAll">Clear everything</button>
     </div>
 
     <div class="timer-wrap">

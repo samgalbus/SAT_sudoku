@@ -531,6 +531,7 @@ function clearEntries() {
 }
 
 function clearEverything() {
+  if (!window.confirm(t("clearAll.confirm"))) return;
   state.clues.clear();
   state.hintCells.clear();
   state.hintsUsed = 0;
