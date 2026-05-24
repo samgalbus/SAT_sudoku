@@ -1,25 +1,17 @@
-// Sudoku SAT Solver frontend. Vanilla JS, no build step.
-//
-// Layout: dual grid (primary editable + solution read-only on the right).
-// Network: POST JSON to /solve, /check, /hint, /validate, /generate.
-// State: single module-level object; persisted to localStorage where useful.
-
-// ============================================================
-//  STATE
-// ============================================================
+// Play page script. Depends on i18n.js.
 
 const state = {
-  cells: [],            // 9x9 of HTMLInputElement (primary, editable)
-  solutionCells: [],    // 9x9 of HTMLInputElement (solution grid, read-only)
-  clues: new Set(),     // "r,c" strings - cells originally given by sudoku
-  hintCells: new Set(), // "r,c" strings - cells filled via Hint
+  cells: [],
+  solutionCells: [],
+  clues: new Set(),
+  hintCells: new Set(),
   hintsUsed: 0,
   hintsMax: 3,
   difficulty: "medium",
   puzzleId: null,
-  startedAt: null,      // Date.now() when timer started
+  startedAt: null,
   timerHandle: null,
-  elapsedAtStart: 0,    // resumed elapsed ms (for restore)
+  elapsedAtStart: 0,
   settings: {
     liveValidate: false,
     timerEnabled: true,
@@ -28,13 +20,6 @@ const state = {
   validateAbort: null,
   validateTimeout: null,
 };
-
-// I18N lives in static/i18n.js (loaded before this file).
-// window.t(key, ...args) and window.applyI18n() are available globally.
-
-// ============================================================
-//  STORAGE
-// ============================================================
 
 const STORAGE = {
   settings: "sudoku.settings",
@@ -47,11 +32,10 @@ function loadSettings() {
     const raw = localStorage.getItem(STORAGE.settings);
     if (raw) Object.assign(state.settings, JSON.parse(raw));
   } catch (e) { /* corrupt storage - ignore */ }
-  // Language is owned by i18n.js (also reads sudoku.settings), so we don't track it here.
 }
 
 function saveSettings() {
-  // Preserve any lang field that i18n.js wrote (read-modify-write merge).
+  // Keep the language field written by i18n.js.
   let existing = {};
   try { existing = JSON.parse(localStorage.getItem(STORAGE.settings) || "{}"); } catch (e) {}
   const merged = { ...existing, ...state.settings };
@@ -62,7 +46,6 @@ function saveSettings() {
 
 let _saveTimer = null;
 function savePuzzleState() {
-  // Debounce: most callers fire on every keystroke; one write per 300ms is plenty.
   if (_saveTimer) clearTimeout(_saveTimer);
   _saveTimer = setTimeout(_savePuzzleStateNow, 300);
 }
@@ -70,7 +53,6 @@ function savePuzzleState() {
 function _savePuzzleStateNow() {
   _saveTimer = null;
   if (!state.puzzleId && state.clues.size === 0) {
-    // Nothing meaningful to restore
     try { localStorage.removeItem(STORAGE.lastPuzzle); } catch (e) {}
     return;
   }
@@ -120,10 +102,6 @@ function recordTime(difficulty, ms, puzzleId) {
   try { localStorage.setItem(key, JSON.stringify(arr)); } catch (e) {}
 }
 
-// ============================================================
-//  TOAST
-// ============================================================
-
 function toast(message, kind = "info", ttl = 3000) {
   const root = document.getElementById("toasts");
   if (!root) return;
@@ -136,10 +114,6 @@ function toast(message, kind = "info", ttl = 3000) {
     setTimeout(() => el.remove(), 250);
   }, ttl);
 }
-
-// ============================================================
-//  GRID HELPERS
-// ============================================================
 
 function buildPrimaryGrid() {
   const root = document.getElementById("grid");
@@ -250,10 +224,6 @@ function hideSolutionGrid() {
   }
 }
 
-// ============================================================
-//  NETWORK
-// ============================================================
-
 async function api(path, body, signal) {
   try {
     const res = await fetch(path, {
@@ -274,10 +244,6 @@ async function api(path, body, signal) {
     return { status: 0, data: { success: false, message: t("toast.networkError") } };
   }
 }
-
-// ============================================================
-//  CELL INPUT HANDLER
-// ============================================================
 
 function onCellInput(input, r, c) {
   input.value = input.value.replace(/[^1-9]/g, "");
@@ -306,10 +272,6 @@ function onCellKeyDown(e, r, c) {
 function focusCell(r, c) {
   state.cells[r][c].focus();
 }
-
-// ============================================================
-//  ACTIONS
-// ============================================================
 
 function showRevealModal() {
   const modal = document.getElementById("revealModal");
@@ -445,14 +407,12 @@ async function onGenerate() {
       toast(data.message || t("toast.networkError"), "error");
       return;
     }
-    // Reset state
     state.clues.clear();
     state.hintCells.clear();
     state.hintsUsed = 0;
     state.puzzleId = data.puzzle_id;
     state.difficulty = data.difficulty;
     state.elapsedAtStart = 0;
-    // Fill grid
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {
         const cell = state.cells[r][c];
@@ -487,7 +447,7 @@ async function runValidate() {
   try {
     const { data } = await api("/validate", { board: readGrid() }, ctrl.signal);
     if (!data.success) return;
-    // Clear previous conflict marks (but preserve correct/wrong from Check).
+    // Keep check marks; only refresh conflict marks.
     for (let r = 0; r < 9; r++) {
       for (let c = 0; c < 9; c++) {
         state.cells[r][c].classList.remove("conflict");
@@ -512,10 +472,6 @@ function updateHintCounter() {
 function setStatus(msg) {
   document.getElementById("status").textContent = msg || "";
 }
-
-// ============================================================
-//  CLEAR
-// ============================================================
 
 function clearEntries() {
   for (let r = 0; r < 9; r++) {
@@ -554,10 +510,6 @@ function clearEverything() {
   toast(t("toast.cleared"), "info", 1500);
 }
 
-// ============================================================
-//  TIMER
-// ============================================================
-
 function startTimer() {
   if (!state.settings.timerEnabled) return;
   state.startedAt = Date.now();
@@ -571,7 +523,6 @@ function stopTimer() {
     clearInterval(state.timerHandle);
     state.timerHandle = null;
   }
-  // Freeze elapsed time
   state.elapsedAtStart = currentElapsedMs();
   state.startedAt = null;
   tickTimer();
@@ -604,12 +555,7 @@ function setTimerVisible(visible) {
   document.querySelector(".timer-wrap").classList.toggle("hidden", !visible);
 }
 
-// ============================================================
-//  IMPORT (textarea paste + file upload)
-// ============================================================
-
 function parseMatrixText(text) {
-  // Accept either 9 lines of 9 digits, or 81 contiguous digits split by whitespace.
   const cleaned = text.replace(/\r/g, "").trim();
   if (!cleaned) return null;
   const rows = cleaned.split(/\s+/);
@@ -623,11 +569,10 @@ function parseMatrixText(text) {
 }
 
 function importGrid(grid) {
-  // Wipe state and apply the imported grid as clues + start a fresh timer.
   state.clues.clear();
   state.hintCells.clear();
   state.hintsUsed = 0;
-    state.puzzleId = null;  // pasted/uploaded sudokus aren't in the server cache
+  state.puzzleId = null;
   state.elapsedAtStart = 0;
   for (let r = 0; r < 9; r++) {
     for (let c = 0; c < 9; c++) {
@@ -668,12 +613,8 @@ function onFileUpload(ev) {
   };
   reader.onerror = () => toast(t("toast.uploadError"), "error");
   reader.readAsText(file);
-  ev.target.value = "";  // allow re-upload of same file
+  ev.target.value = "";
 }
-
-// ============================================================
-//  TUTORIAL
-// ============================================================
 
 let tutorialStep = 0;
 const TUTORIAL_STEPS = ["tutorial.step1", "tutorial.step2", "tutorial.step3", "tutorial.step4"];
@@ -703,10 +644,6 @@ function renderTutorialStep() {
 function maybeShowTutorial() {
   if (!state.settings.tutorialSeen) showTutorial();
 }
-
-// ============================================================
-//  RESTORE LAST SUDOKU
-// ============================================================
 
 function restoreLastPuzzle() {
   const saved = loadPuzzleState();
@@ -745,10 +682,6 @@ function restoreLastPuzzle() {
   }
 }
 
-// ============================================================
-//  WIRING
-// ============================================================
-
 function wireSettings() {
   const live = document.getElementById("setLiveValidate");
   const timerCb = document.getElementById("setTimer");
@@ -762,7 +695,6 @@ function wireSettings() {
     state.settings.liveValidate = live.checked;
     saveSettings();
     if (!live.checked) {
-      // Clear conflict highlights
       for (let r = 0; r < 9; r++) {
         for (let c = 0; c < 9; c++) {
           state.cells[r][c].classList.remove("conflict");
@@ -819,10 +751,6 @@ function wireButtons() {
     }
   });
 }
-
-// ============================================================
-//  INIT
-// ============================================================
 
 function init() {
   loadSettings();

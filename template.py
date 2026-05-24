@@ -46,9 +46,6 @@ def addVarName(name):
     gVarNumberToName.append(name)
     gVarNameToNumber[name] = varCount()
 
-# def printClause(clause):
-#     print(map(lambda x: "%s%s" % (x < 0 and eval("'-'") or eval ("''"), varNumberToName(abs(x))) , clause))
-
 def getVarNumber(**kwargs):
     return varNameToNumber(getVarName(**kwargs))
 
@@ -234,8 +231,7 @@ def toMatrix(res):
 #Input: 9x9 matrix representing a sudoku initial board with 0 representing an empty cell
 #Output: 9x9 matrix representing the input solution if the input is satisfiable. It returns None if the input is unsatisfiable
 def solveBoard(board, cnf_path="tmp_prob.cnf", timeout_s=30):
-    # Reset module-level encoding state so repeated calls in a long-running
-    # server process don't accumulate stale variable names across requests.
+    # Needed when solveBoard is called more than once in the Flask process.
     global gVarNumberToName, gVarNameToNumber
     gVarNumberToName[:] = ["invalid"]
     gVarNameToNumber.clear()
@@ -256,14 +252,12 @@ def solveBoard(board, cnf_path="tmp_prob.cnf", timeout_s=30):
     head = getDimacsHeader(clauses)
     cnf = toDimacsCnf(clauses)
 
-    # Per-request CNF file path lets concurrent server requests avoid colliding
-    # on a shared "tmp_prob.cnf"; default preserves CLI behavior.
+    # Flask passes a temporary path; the CLI keeps tmp_prob.cnf.
     fl = open(cnf_path, "w")
     fl.write("\n".join([head, cnf]) + "\n")
     fl.close()
 
-    # Run the SATsolver with timeout; kill the child on expiry so it doesn't
-    # leak as a zombie.
+    # The web route uses the timeout to avoid stuck requests.
     proc = Popen([SATsolver + " " + shlex.quote(cnf_path)], stdout=PIPE, shell=True)
     try:
         solverOutput = proc.communicate(timeout=timeout_s)[0]
