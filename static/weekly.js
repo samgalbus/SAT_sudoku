@@ -73,7 +73,7 @@
       }
       document.getElementById("weeklyTimer").textContent = fmtMmSs(state.completedElapsedMs || state.elapsedMs);
     } else {
-      setBanner("loading", t("toast.generating"));
+      setBanner("loading", t("toast.loading"));
     }
     setActionsForState();
   }
@@ -192,6 +192,7 @@
 
   async function onSubmit() {
     if (state.status !== "in_progress") return;
+    if (!window.confirm(t("weekly.submitConfirm"))) return;
     state.grid.clearMarks();
     const board = state.grid.readBoard();
     const { json } = await Auth.fetchJSON("/weekly/submit", {

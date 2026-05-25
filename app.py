@@ -1,16 +1,7 @@
-"""Flask server wrapping the SAT-based Sudoku solver.
+"""Flask routes and persistence for the Sudoku SAT solver app.
 
-The SAT encoding lives in template.py and is graded as-is. This module owns
-everything around it: per-request CNF temp files, concurrency lock (template.py
-mutates module globals during encoding), subprocess timeout, SQLite sudoku
-cache, and the JSON API the frontend talks to.
-
-Endpoints (POST, JSON):
-    /solve     - solve a board; smart-fallback to cached clues on UNSAT
-    /check     - per-cell correct/wrong vs cached solution           (Phase C)
-    /hint      - return one correct cell from the solver             (Phase D)
-    /validate  - structural duplicate scan, no solver call           (Phase C)
-    /generate  - random uniquely-solvable sudoku for chosen difficulty (Phase E)
+The SAT encoding is in template.py. This file handles HTTP routes, SQLite
+state, sessions, and temporary CNF files for calls into solveBoard.
 """
 
 import contextlib
@@ -40,7 +31,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from template import solveBoard
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "puzzles.db")
+DB_PATH = os.environ.get("SUDOKU_DB_PATH", os.path.join(BASE_DIR, "puzzles.db"))
 SOLVER_LOCK = threading.Lock()
 WEEKLY_GEN_LOCK = threading.Lock()
 DIFFICULTY_CLUES = {"easy": 40, "medium": 30, "hard": 25, "expert": 22}
@@ -52,13 +43,10 @@ EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 log = logging.getLogger(__name__)
 
-# templates/ is Flask's default lookup; sudoku.html lives there now.
 app = Flask(__name__, static_folder="static")
 app.secret_key = os.environ.get("SUDOKU_SECRET_KEY", "dev-only-change-me")
 app.permanent_session_lifetime = timedelta(days=30)
 
-
-# ---------------------------- DB helpers ----------------------------
 
 def _db_connect():
     conn = sqlite3.connect(DB_PATH)
@@ -67,6 +55,9 @@ def _db_connect():
 
 
 def _init_db():
+    db_dir = os.path.dirname(DB_PATH)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
     conn = _db_connect()
     try:
         conn.execute(
@@ -169,16 +160,14 @@ def _load_puzzle(pid):
 _init_db()
 
 
-# ---------------------------- Auth helpers ----------------------------
-
 def _current_week_id():
-    """ISO year-week string (Monday 00:00 UTC rollover)."""
+    """ISO year-week string, with Monday UTC rollover."""
     iso = datetime.now(timezone.utc).isocalendar()
     return f"{iso[0]}-W{iso[1]:02d}"
 
 
 def _format_user(row):
-    """Public-safe user view; strips email + password hash."""
+    """User fields returned to the browser."""
     if row is None:
         return None
     return {
@@ -189,11 +178,7 @@ def _format_user(row):
 
 
 def _current_user():
-    """Reads session, returns the user row dict or None.
-
-    Returns None for soft-deleted users so the rest of the app can treat them
-    as logged-out.
-    """
+    """Return the current non-deleted user, or None."""
     uid = session.get("user_id")
     if not uid:
         return None
@@ -243,12 +228,7 @@ def _validate_email(value):
 
 
 def _get_or_create_weekly_puzzle(week_id, difficulty):
-    """Returns this (week, difficulty)'s sudoku row, generating it on first request.
-
-    Serialized via WEEKLY_GEN_LOCK to keep two simultaneous first-visitors from
-    each running _generate_puzzle. INSERT OR IGNORE means the loser of the race
-    no-ops cleanly.
-    """
+    """Return this weekly puzzle, creating it once per difficulty."""
     conn = _db_connect()
     try:
         row = conn.execute(
@@ -304,7 +284,7 @@ def _get_or_create_weekly_puzzle(week_id, difficulty):
 
 
 def _attempt_status(row, now=None):
-    """Builds the attempt sub-object returned by /weekly/<difficulty>."""
+    """Attempt state returned by /weekly/<difficulty>."""
     if row is None:
         return {"status": "not_started"}
     now = now if now is not None else time.time()
@@ -340,8 +320,7 @@ def _load_attempt(conn, user_id, week_id, difficulty):
 
 
 def _send_reset_email(to_email, link):
-    """Send the reset link via SMTP. Falls back to logging the link if SMTP env vars
-    aren't configured — handy for local dev (read it from the server log)."""
+    """Send the reset link, or log it when SMTP is not configured."""
     host = os.environ.get("SUDOKU_SMTP_HOST")
     user = os.environ.get("SUDOKU_SMTP_USER")
     password = os.environ.get("SUDOKU_SMTP_PASS")
@@ -369,14 +348,8 @@ def _send_reset_email(to_email, link):
         log.error("Failed to send reset email to %s: %s", to_email, exc)
 
 
-# ---------------------------- Input validation ----------------------------
-
 def _grid_from_payload(payload):
-    """Coerce the JSON 'board' field into a 9x9 list[list[int]] with values 0-9.
-
-    The frontend sends cells as strings (empty string = empty cell); we coerce
-    to int. Raises ValueError on any shape or range problem.
-    """
+    """Read a 9x9 board from JSON and coerce cells to integers."""
     if not isinstance(payload, dict) or "board" not in payload:
         raise ValueError("missing 'board' field")
     board = payload["board"]
@@ -404,11 +377,7 @@ def _grid_from_payload(payload):
 
 
 def _find_conflicts(grid):
-    """Cells whose value duplicates another in the same row, column, or 3x3 box.
-
-    Zeros are ignored. Pure structural check, no solver call. Both members of
-    a duplicate pair are flagged so the frontend can highlight either end.
-    """
+    """Return duplicate cells in rows, columns, and boxes."""
     conflicts = set()
 
     for r in range(9):
@@ -453,15 +422,8 @@ def _find_conflicts(grid):
     return [[r, c] for (r, c) in sorted(conflicts)]
 
 
-# ---------------------------- Backtracking (sudoku generation only) ----------------------------
-#
-# These helpers are used ONLY for random sudoku generation:
-#   _backtrack_fill   - produce a complete random valid grid to start from
-#   _has_unique_sol   - verify a generated sudoku has exactly one solution
-#
-# The actual /solve, /check, /hint endpoints still use the SAT encoding in
-# template.py. Backtracking here is a generation utility, not a competing
-# Sudoku solver.
+# Backtracking is used only to generate puzzles and check uniqueness. The
+# solving API still calls the SAT encoding in template.py.
 
 def _is_placement_valid(grid, r, c, v):
     for i in range(9):
@@ -476,8 +438,7 @@ def _is_placement_valid(grid, r, c, v):
 
 
 def _backtrack_fill(grid):
-    """Fill in-place starting from the first empty cell. Random digit order
-    yields a different valid grid every run."""
+    """Fill the grid in place using random digit order."""
     for r in range(9):
         for c in range(9):
             if grid[r][c] == 0:
@@ -494,8 +455,7 @@ def _backtrack_fill(grid):
 
 
 def _count_solutions_upto(grid, limit=2):
-    """Backtracking solution counter with early termination at `limit`. Used
-    to verify uniqueness during sudoku generation; not exposed via the API."""
+    """Count solutions up to limit for generated-puzzle uniqueness."""
     grid = [row[:] for row in grid]
     count = [0]
 
@@ -543,9 +503,7 @@ def _has_unique_solution(grid):
 
 
 def _generate_puzzle(difficulty):
-    """Fill a random complete grid, then symmetrically remove pairs of cells
-    while preserving solution uniqueness. Returns (puzzle, solution, clue_count).
-    """
+    """Generate a puzzle, its solution, and the final clue count."""
     target = DIFFICULTY_CLUES[difficulty]
 
     solution = [[0] * 9 for _ in range(9)]
@@ -582,13 +540,10 @@ def _generate_puzzle(difficulty):
         if _has_unique_solution(puzzle):
             clue_count -= len(saved)
         else:
-            # Multi-solution after removal - restore and try a different pair.
             for (pos, val) in saved:
                 puzzle[pos[0]][pos[1]] = val
 
-    # Symmetric removal can get stuck above the requested target. Finish with
-    # single-cell removals so the selected difficulty maps to the intended clue
-    # count when uniqueness allows it.
+    # Symmetric removal sometimes stops above the requested clue count.
     while clue_count > target:
         progress = False
         cells = [(r, c) for r in range(9) for c in range(9) if puzzle[r][c] != 0]
@@ -609,18 +564,12 @@ def _generate_puzzle(difficulty):
     return puzzle, solution, clue_count
 
 
-# ---------------------------- Solver wrapper ----------------------------
-
 def _solve_with_temp(grid, timeout_s=30):
-    """Call solveBoard with a per-request temp CNF file.
-
-    SOLVER_LOCK serializes calls because template.py mutates module globals
-    during encoding. redirect_stdout swallows getDimacsHeader's print noise
-    (the function is annotated "do not modify" so we redirect from outside).
-    """
+    """Call solveBoard with an isolated temp CNF file."""
     fd, path = tempfile.mkstemp(suffix=".cnf", prefix="sudoku_")
     os.close(fd)
     try:
+        # template.py uses module globals during encoding, so calls are serialized.
         with SOLVER_LOCK, contextlib.redirect_stdout(io.StringIO()):
             return solveBoard(grid, cnf_path=path, timeout_s=timeout_s)
     finally:
@@ -629,8 +578,6 @@ def _solve_with_temp(grid, timeout_s=30):
         except OSError:
             pass
 
-
-# ---------------------------- Routes ----------------------------
 
 @app.route("/")
 def index():
@@ -649,9 +596,7 @@ def solver():
 
 @app.get("/landing-preview")
 def landing_preview():
-    """Lightweight payload for the landing page: top 3 finishers per difficulty,
-    current week. Skips disqualified rows. Used by anonymous + logged-in visitors.
-    """
+    """Top weekly times shown on the landing page."""
     week_id = _current_week_id()
     conn = _db_connect()
     try:
@@ -854,8 +799,6 @@ def generate():
     })
 
 
-# ---------------------------- Auth routes ----------------------------
-
 @app.post("/auth/register")
 def auth_register():
     payload = request.get_json(silent=True) or {}
@@ -1004,7 +947,7 @@ def auth_delete_account(user):
 def auth_forgot_password():
     payload = request.get_json(silent=True) or {}
     email = (payload.get("email") or "").strip().lower()
-    # Always answer the same way to avoid email enumeration.
+    # Same response for registered and unknown emails.
     generic = jsonify({
         "success": True,
         "message": "If that email is registered, a reset link is on its way.",
@@ -1069,8 +1012,6 @@ def reset_password_page():
     return render_template("reset_password.html", token=request.args.get("token", ""))
 
 
-# ---------------------------- Weekly competition routes ----------------------------
-
 @app.get("/weekly")
 def weekly_page():
     return render_template("weekly.html")
@@ -1112,7 +1053,7 @@ def weekly_start(user):
 
     conn = _db_connect()
     try:
-        # Idempotent: if a row already exists, leave it alone — never reset the clock.
+        # Existing attempts keep their original start time.
         conn.execute(
             "INSERT OR IGNORE INTO weekly_attempts "
             "(user_id, week_id, difficulty, puzzle_id, started_at) "
@@ -1151,8 +1092,7 @@ def weekly_save_grid(user):
     try:
         row = _load_attempt(conn, user["id"], week_id, difficulty)
         if row is None or row["completed_at"] is not None:
-            # No active attempt to autosave to — silently no-op so the frontend
-            # doesn't have to special-case the post-completion state.
+            # Nothing active to save.
             return jsonify({"success": True, "saved": False})
         conn.execute(
             "UPDATE weekly_attempts SET grid_state_json = ? WHERE id = ?",
@@ -1411,8 +1351,7 @@ def weekly_leaderboard(difficulty):
 
 
 def _mark_active_weekly_disqualified(user_id, puzzle_id):
-    """If the caller has an in-progress weekly attempt against this puzzle_id,
-    mark it disqualified=1. Returns True if a row was flipped."""
+    """Disqualify an active weekly attempt after solve or hint use."""
     if not user_id or not puzzle_id:
         return False
     conn = _db_connect()
@@ -1429,16 +1368,17 @@ def _mark_active_weekly_disqualified(user_id, puzzle_id):
         conn.close()
 
 
+_init_db()
+
 if __name__ == "__main__":
     if shutil.which("z3") is None:
         print(
             "WARNING: z3 not on PATH; /solve will fail until you run `brew install z3`.",
             file=sys.stderr,
         )
-    _init_db()
     app.run(
-        host="127.0.0.1",
+        host=os.environ.get("SUDOKU_HOST", "127.0.0.1"),
         port=int(os.environ.get("SUDOKU_PORT", "5000")),
         threaded=True,
-        debug=True,
+        debug=os.environ.get("SUDOKU_DEBUG", "1") == "1",
     )

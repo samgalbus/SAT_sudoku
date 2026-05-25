@@ -1,0 +1,15 @@
+.git
+.gitignore
+.idea
+.venv
+venv
+__pycache__
+*.pyc
+*.cnf
+input.txt
+output.txt
+puzzles.db
+.DS_Store
+README.md
+instructions.txt
+.claude

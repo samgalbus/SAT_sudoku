@@ -50,14 +50,14 @@
 
   // ---------- Nav rendering ----------
   function renderNav() {
-    const loginBtn = document.getElementById("navLoginBtn");
-    const userMenu = document.getElementById("navUserMenu");
+    const loginBtn = document.getElementById("loginBtn");
+    const userMenu = document.getElementById("userMenu");
     if (!loginBtn || !userMenu) return;
     if (currentUser) {
       loginBtn.hidden = true;
       userMenu.hidden = false;
-      const name = document.getElementById("navUserName");
-      const profile = document.getElementById("navProfileLink");
+      const name = document.getElementById("userMenuName");
+      const profile = document.getElementById("userMenuProfile");
       name.textContent = currentUser.username;
       const profileHref = `/profile/${encodeURIComponent(currentUser.username)}`;
       name.href = profileHref;
@@ -239,11 +239,11 @@
 
   // ---------- Wiring ----------
   function wireNav() {
-    const loginBtn = document.getElementById("navLoginBtn");
+    const loginBtn = document.getElementById("loginBtn");
     if (loginBtn) loginBtn.addEventListener("click", () => openModal("login"));
 
-    const toggle = document.getElementById("navUserToggle");
-    const dropdown = document.getElementById("navUserDropdown");
+    const toggle = document.getElementById("userMenuToggle");
+    const dropdown = document.getElementById("userMenuDropdown");
     if (toggle && dropdown) {
       toggle.addEventListener("click", (ev) => {
         ev.stopPropagation();
@@ -256,19 +256,19 @@
       });
     }
 
-    const changePw = document.getElementById("navChangePw");
+    const changePw = document.getElementById("userMenuChangePw");
     if (changePw) changePw.addEventListener("click", () => {
       if (dropdown) dropdown.hidden = true;
       openModal("changePw");
     });
 
-    const deleteBtn = document.getElementById("navDelete");
+    const deleteBtn = document.getElementById("userMenuDelete");
     if (deleteBtn) deleteBtn.addEventListener("click", () => {
       if (dropdown) dropdown.hidden = true;
       openModal("delete");
     });
 
-    const logout = document.getElementById("navLogout");
+    const logout = document.getElementById("userMenuLogout");
     if (logout) logout.addEventListener("click", async () => {
       if (dropdown) dropdown.hidden = true;
       await fetchJSON("/auth/logout", { method: "POST" });

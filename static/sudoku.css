@@ -234,6 +234,15 @@ h1, h2, h3 {
   background: var(--accent-hover);
   box-shadow: var(--shadow-md);
 }
+.panel button.danger {
+  background: #fff;
+  color: var(--wrong);
+  border-color: var(--wrong);
+}
+.panel button.danger:hover:not(:disabled) {
+  background: var(--wrong);
+  color: #fff;
+}
 
 .panel select { height: 42px; padding: 0 8px; background: #fff; }
 
@@ -570,7 +579,7 @@ h1, h2, h3 {
 
 .nav-dropdown a:hover,
 .nav-dropdown button:hover { background: #f0e9dc; }
-.nav-dropdown #navDelete { color: var(--wrong); }
+.nav-dropdown #userMenuDelete { color: var(--wrong); }
 
 /* ---------- Auth modal ---------- */
 
@@ -926,7 +935,7 @@ h1, h2, h3 {
   letter-spacing: 0.5px;
 }
 
-.weekly-diff-tabs {
+.difficulty-tabs {
   display: flex;
   gap: 8px;
 }
