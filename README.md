@@ -91,7 +91,19 @@ python3 template.py input.txt output.txt
 
 Both files use 9 lines of 9 digits. Use `0` for empty cells in the input.
 
-## Notes
+## Tests
+
+A small pytest suite covers the SAT encoding/decoding in `template.py`:
+a solvable puzzle is completed to a valid grid, a contradictory puzzle returns
+`None` (UNSAT), an already-solved grid round-trips unchanged, and an empty grid
+is completed to a valid grid. Requires `z3` on `PATH`.
+
+```bash
+pip install -r requirements.txt
+pytest
+```
+
+## File layout
 
 - The server expects `z3` to be available on `PATH`.
 - `puzzles.db` is created automatically for local storage.
